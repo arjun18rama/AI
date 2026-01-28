@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Callable
 
@@ -56,6 +57,7 @@ def main() -> None:
 
     ppo_config = config["ppo"]
     device = config["training"]["device"]
+    tensorboard_log = str(log_dir) if find_spec("tensorboard") else None
     model = PPO(
         policy="MlpPolicy",
         env=vec_env,
@@ -69,7 +71,7 @@ def main() -> None:
         vf_coef=ppo_config["vf_coef"],
         max_grad_norm=ppo_config["max_grad_norm"],
         learning_rate=ppo_config["learning_rate"],
-        tensorboard_log=str(log_dir),
+        tensorboard_log=tensorboard_log,
         device=device,
         verbose=1,
     )
@@ -86,7 +88,7 @@ def main() -> None:
         vf_coef=ppo_config["vf_coef"],
         max_grad_norm=ppo_config["max_grad_norm"],
         learning_rate=ppo_config["learning_rate"],
-        tensorboard_log=str(log_dir),
+        tensorboard_log=tensorboard_log,
         device=device,
         verbose=0,
     )

@@ -12,7 +12,14 @@ from envs.humanoid_env import HUMANOID_SPEC, build_humanoid_xml
 
 def build_arena_model() -> mujoco.MjModel:
     """Create the shared arena model with two humanoids."""
-
+    motors = "\n".join(
+        f"<motor name=\"agent_a_{name}\" joint=\"agent_a_{name}\" gear=\"60\"/>"
+        for name in HUMANOID_SPEC.actuator_names
+    )
+    motors += "\n" + "\n".join(
+        f"<motor name=\"agent_b_{name}\" joint=\"agent_b_{name}\" gear=\"60\"/>"
+        for name in HUMANOID_SPEC.actuator_names
+    )
     xml = f"""
     <mujoco model=\"humanoid_arena\">
       <option timestep=\"0.002\" gravity=\"0 0 -9.81\"/>
@@ -26,14 +33,7 @@ def build_arena_model() -> mujoco.MjModel:
         {build_humanoid_xml("agent_b", 0.5, "0.9 0.4 0.2 1")}
       </worldbody>
       <actuator>
-        {""""""}
-        """ + "\n".join(
-            f"<motor name=\"agent_a_{name}\" joint=\"agent_a_{name}\" gear=\"60\"/>"
-            for name in HUMANOID_SPEC.actuator_names
-        ) + "\n" + "\n".join(
-            f"<motor name=\"agent_b_{name}\" joint=\"agent_b_{name}\" gear=\"60\"/>"
-            for name in HUMANOID_SPEC.actuator_names
-        ) + """
+        {motors}
       </actuator>
     </mujoco>
     """
@@ -87,7 +87,7 @@ class ArenaEnv(gym.Env):
         action_size = len(self._agent_a_actuators) + len(self._agent_b_actuators)
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(action_size,), dtype=np.float32)
 
-        obs_size = self._obs_dim_per_agent() * 2 + 6
+        obs_size = self._obs_dim_per_agent() * 2 + 7
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(obs_size,), dtype=np.float32
         )
