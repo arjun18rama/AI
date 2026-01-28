@@ -1,0 +1,23 @@
+training:
+  num_envs: 8
+  frame_skip: 10
+  use_subproc: false
+  total_timesteps: 2000000
+  log_dir: "./logs"
+  checkpoint_path: "./checkpoints/ppo_selfplay"
+
+ppo:
+  n_steps: 2048
+  batch_size: 256
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  learning_rate: 0.0003
+
+selfplay:
+  pool_size: 8
+  snapshot_every: 200000
