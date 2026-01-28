@@ -35,6 +35,9 @@ python train.py --config configs/default.yaml
 python train.py --config /path/to/your_config.yaml
 ```
 
+### Configure device selection
+To use Apple Metal (MPS) with a PyTorch build that supports it, set `training.device: mps` in your YAML config (for example, in `configs/default.yaml`). Otherwise, keep the default `training.device: cpu` or set it to `cuda` for NVIDIA GPUs.
+
 ### Use the environments directly (API example)
 ```python
 from envs.arena_env import ArenaEnv

@@ -1,4 +1,5 @@
 training:
+  device: cpu
   num_envs: 8
   frame_skip: 10
   use_subproc: false
