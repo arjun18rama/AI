@@ -52,6 +52,7 @@ def main() -> None:
     vec_env = build_vec_env(config)
 
     ppo_config = config["ppo"]
+    device = config["training"]["device"]
     model = PPO(
         policy="MlpPolicy",
         env=vec_env,
@@ -66,7 +67,7 @@ def main() -> None:
         max_grad_norm=ppo_config["max_grad_norm"],
         learning_rate=ppo_config["learning_rate"],
         tensorboard_log=str(log_dir),
-        device="cpu",
+        device=device,
         verbose=1,
     )
 
