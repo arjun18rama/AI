@@ -81,7 +81,7 @@ class ArenaEnv(gym.Env):
         action_size = len(self._agent_a_actuators) + len(self._agent_b_actuators)
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(action_size,), dtype=np.float32)
 
-        obs_size = self._obs_dim_per_agent() * 2 + 6
+        obs_size = self._obs_dim_per_agent() * 2 + 7
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(obs_size,), dtype=np.float32
         )
