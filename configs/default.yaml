@@ -3,6 +3,7 @@ training:
   num_envs: 8
   frame_skip: 10
   use_subproc: false
+  reward_mode: cooperative
   total_timesteps: 2000000
   log_dir: "./logs"
   checkpoint_path: "./checkpoints/ppo_selfplay"

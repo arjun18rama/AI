@@ -20,9 +20,9 @@ def load_config(path: Path) -> dict:
         return yaml.safe_load(handle)
 
 
-def make_env(seed: int, frame_skip: int) -> Callable[[], gym.Env]:
+def make_env(seed: int, frame_skip: int, reward_mode: str) -> Callable[[], gym.Env]:
     def _init() -> gym.Env:
-        env = ArenaEnv(frame_skip=frame_skip, seed=seed)
+        env = ArenaEnv(frame_skip=frame_skip, seed=seed, reward_mode=reward_mode)
         return env
 
     return _init
@@ -32,8 +32,9 @@ def build_vec_env(config: dict) -> gym.Env:
     num_envs = int(config["training"]["num_envs"])
     frame_skip = int(config["training"]["frame_skip"])
     use_subproc = bool(config["training"].get("use_subproc", False))
+    reward_mode = str(config["training"].get("reward_mode", "cooperative"))
 
-    env_fns = [make_env(seed, frame_skip) for seed in range(num_envs)]
+    env_fns = [make_env(seed, frame_skip, reward_mode) for seed in range(num_envs)]
     if use_subproc and num_envs > 1:
         return SubprocVecEnv(env_fns)
     return DummyVecEnv(env_fns)

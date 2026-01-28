@@ -62,12 +62,24 @@ class ArenaEnv(gym.Env):
 
     metadata = {"render_modes": []}
 
-    def __init__(self, frame_skip: int = 10, seed: int | None = None) -> None:
+    def __init__(
+        self,
+        frame_skip: int = 10,
+        seed: int | None = None,
+        reward_mode: str = "cooperative",
+        fall_height: float = 0.5,
+        terminal_bonus: float = 10.0,
+    ) -> None:
         super().__init__()
         self.model = build_arena_model()
         self.data = mujoco.MjData(self.model)
         self.frame_skip = frame_skip
         self.np_random, _ = gym.utils.seeding.np_random(seed)
+        if reward_mode not in {"cooperative", "competitive"}:
+            raise ValueError("reward_mode must be 'cooperative' or 'competitive'.")
+        self.reward_mode = reward_mode
+        self.fall_height = fall_height
+        self.terminal_bonus = terminal_bonus
 
         self._agent_a_actuators = self._actuator_ids("agent_a")
         self._agent_b_actuators = self._actuator_ids("agent_b")
@@ -179,17 +191,42 @@ class ArenaEnv(gym.Env):
         a_upright = self._upright_score("agent_a")
         b_upright = self._upright_score("agent_b")
 
-        # Reward encourages balance plus creating imbalance in the opponent.
         a_reward = 1.5 * a_upright + 0.5 * (a_height - 0.9)
         b_reward = 1.5 * b_upright + 0.5 * (b_height - 0.9)
-        push_bonus = 0.5 * abs(a_height - b_height)
-        reward = a_reward + b_reward + push_bonus
 
-        terminated = a_height < 0.5 or b_height < 0.5
+        terminated = a_height < self.fall_height or b_height < self.fall_height
+        winner = None
+        if terminated:
+            if a_height < self.fall_height and b_height < self.fall_height:
+                if a_height > b_height:
+                    winner = "agent_a"
+                elif b_height > a_height:
+                    winner = "agent_b"
+                elif a_upright >= b_upright:
+                    winner = "agent_a"
+                else:
+                    winner = "agent_b"
+            elif a_height < self.fall_height:
+                winner = "agent_b"
+            else:
+                winner = "agent_a"
+
+            if winner == "agent_a":
+                a_reward += self.terminal_bonus
+                b_reward -= self.terminal_bonus
+            elif winner == "agent_b":
+                a_reward -= self.terminal_bonus
+                b_reward += self.terminal_bonus
+
+        if self.reward_mode == "competitive":
+            reward = a_reward - b_reward
+        else:
+            reward = a_reward + b_reward
         info = {
             "agent_a_reward": a_reward,
             "agent_b_reward": b_reward,
             "agent_a_upright": a_upright,
             "agent_b_upright": b_upright,
+            "winner": winner,
         }
         return obs, reward, terminated, False, info
