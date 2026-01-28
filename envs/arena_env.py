@@ -77,6 +77,12 @@ class ArenaEnv(gym.Env):
         self._agent_b_root_addr = self.model.jnt_qposadr[self._agent_b_joints[0]]
         self._agent_a_vel_addr = self.model.jnt_dofadr[self._agent_a_joints[0]]
         self._agent_b_vel_addr = self.model.jnt_dofadr[self._agent_b_joints[0]]
+        self._agent_a_body_ids = self._body_ids("agent_a")
+        self._agent_b_body_ids = self._body_ids("agent_b")
+        self._agent_a_geom_ids = self._geom_ids(self._agent_a_body_ids)
+        self._agent_b_geom_ids = self._geom_ids(self._agent_b_body_ids)
+        self._base_body_mass = self.model.body_mass.copy()
+        self._base_geom_friction = self.model.geom_friction.copy()
 
         action_size = len(self._agent_a_actuators) + len(self._agent_b_actuators)
         self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(action_size,), dtype=np.float32)
@@ -92,6 +98,21 @@ class ArenaEnv(gym.Env):
     def _joint_ids(self, prefix: str):
         joint_names = [f"{prefix}_{name}" for name in HUMANOID_SPEC.joint_names]
         return [self.model.joint(name).id for name in joint_names]
+
+    def _body_ids(self, prefix: str) -> list[int]:
+        return [
+            body_id
+            for body_id in range(self.model.nbody)
+            if self.model.body(body_id).name.startswith(prefix)
+        ]
+
+    def _geom_ids(self, body_ids: list[int]) -> list[int]:
+        body_ids_set = set(body_ids)
+        return [
+            geom_id
+            for geom_id in range(self.model.ngeom)
+            if int(self.model.geom_bodyid[geom_id]) in body_ids_set
+        ]
 
     def _obs_dim_per_agent(self) -> int:
         # root qpos (7) + root qvel (6) + joint qpos/qvel for remaining joints
@@ -142,13 +163,53 @@ class ArenaEnv(gym.Env):
         if seed is not None:
             self.np_random, _ = gym.utils.seeding.np_random(seed)
         mujoco.mj_resetData(self.model, self.data)
+        side_swap = bool(self.np_random.random() < 0.5)
+        if side_swap:
+            a_x = float(self.data.qpos[self._agent_a_root_addr])
+            b_x = float(self.data.qpos[self._agent_b_root_addr])
+            self.data.qpos[self._agent_a_root_addr] = b_x
+            self.data.qpos[self._agent_b_root_addr] = a_x
+
         noise = self.np_random.uniform(low=-0.02, high=0.02, size=self.data.qpos.shape)
         self.data.qpos[:] += noise
+
+        a_offset = self.np_random.uniform(low=-0.03, high=0.03, size=2)
+        b_offset = self.np_random.uniform(low=-0.03, high=0.03, size=2)
+        self.data.qpos[self._agent_a_root_addr:self._agent_a_root_addr + 2] += a_offset
+        self.data.qpos[self._agent_b_root_addr:self._agent_b_root_addr + 2] += b_offset
+
+        a_mass_scale = float(self.np_random.uniform(0.98, 1.02))
+        b_mass_scale = float(self.np_random.uniform(0.98, 1.02))
+        self.model.body_mass[self._agent_a_body_ids] = (
+            self._base_body_mass[self._agent_a_body_ids] * a_mass_scale
+        )
+        self.model.body_mass[self._agent_b_body_ids] = (
+            self._base_body_mass[self._agent_b_body_ids] * b_mass_scale
+        )
+
+        a_friction_scale = float(self.np_random.uniform(0.97, 1.03))
+        b_friction_scale = float(self.np_random.uniform(0.97, 1.03))
+        self.model.geom_friction[self._agent_a_geom_ids] = (
+            self._base_geom_friction[self._agent_a_geom_ids] * a_friction_scale
+        )
+        self.model.geom_friction[self._agent_b_geom_ids] = (
+            self._base_geom_friction[self._agent_b_geom_ids] * b_friction_scale
+        )
+
         self.data.qpos[self._agent_a_root_addr + 2] = max(self.data.qpos[self._agent_a_root_addr + 2], 1.0)
         self.data.qpos[self._agent_b_root_addr + 2] = max(self.data.qpos[self._agent_b_root_addr + 2], 1.0)
         self.data.qvel[:] = 0
         mujoco.mj_forward(self.model, self.data)
-        return self._get_obs(), {}
+        info = {
+            "side_swap": side_swap,
+            "agent_a_offset": a_offset,
+            "agent_b_offset": b_offset,
+            "agent_a_mass_scale": a_mass_scale,
+            "agent_b_mass_scale": b_mass_scale,
+            "agent_a_friction_scale": a_friction_scale,
+            "agent_b_friction_scale": b_friction_scale,
+        }
+        return self._get_obs(), info
 
     def _get_obs(self) -> np.ndarray:
         obs_a = self._get_agent_state("agent_a")
