@@ -30,6 +30,24 @@ pip install mujoco gymnasium stable-baselines3 numpy PyYAML
 python train.py --config configs/default.yaml
 ```
 
+## macOS quickstart (one command run)
+First-time setup (downloads repo + installs dependencies):
+```bash
+./scripts/bootstrap_macos.sh https://github.com/your-org/ai-selfplay.git
+```
+Or fetch it directly:
+```bash
+curl -fsSL https://raw.githubusercontent.com/your-org/ai-selfplay/main/scripts/bootstrap_macos.sh | \
+  bash -s -- https://github.com/your-org/ai-selfplay.git
+```
+
+Daily run (single command):
+```bash
+./scripts/run_macos.sh
+```
+
+See `docs/SETUP_MACOS.md` for details and customization options.
+
 ### Train with a custom config
 ```bash
 python train.py --config /path/to/your_config.yaml
