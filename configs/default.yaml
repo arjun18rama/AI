@@ -1,0 +1,25 @@
+env:
+  episode_length: 1000
+  control_timestep: 0.02
+  physics_timestep: 0.002
+  opponent_distance: 1.2
+  fall_height: 0.7
+  action_scale: 0.7
+  healthy_height: 0.95
+
+training:
+  num_envs: 8
+  vec_env: dummy  # dummy keeps opponents in-process; use subproc if you disable self-play snapshots.
+  total_timesteps: 2000000
+  learning_rate: 0.0003
+  n_steps: 2048
+  batch_size: 256
+  gamma: 0.995
+  gae_lambda: 0.95
+  n_epochs: 10
+  clip_range: 0.2
+  output_dir: runs
+
+selfplay:
+  pool_size: 8
+  snapshot_freq: 20000
