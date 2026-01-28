@@ -45,6 +45,10 @@ def main() -> None:
     args = parser.parse_args()
 
     config = load_config(args.config)
+    log_dir = Path(config["training"]["log_dir"])
+    log_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = Path(config["training"]["checkpoint_path"])
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     vec_env = build_vec_env(config)
 
     ppo_config = config["ppo"]
@@ -61,7 +65,8 @@ def main() -> None:
         vf_coef=ppo_config["vf_coef"],
         max_grad_norm=ppo_config["max_grad_norm"],
         learning_rate=ppo_config["learning_rate"],
-        tensorboard_log=config["training"]["log_dir"],
+        tensorboard_log=str(log_dir),
+        device="cpu",
         verbose=1,
     )
 
@@ -76,7 +81,7 @@ def main() -> None:
         timesteps += rollout
         opponent_pool.add(model)
 
-    model.save(config["training"]["checkpoint_path"])
+    model.save(str(checkpoint_path))
 
 
 if __name__ == "__main__":
